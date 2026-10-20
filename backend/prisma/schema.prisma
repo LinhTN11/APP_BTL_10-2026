@@ -1,0 +1,143 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum SwipeAction {
+  LIKE
+  PASS
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+model User {
+  id              String         @id @default(uuid())
+  email           String         @unique
+  passwordHash    String?        @map("password_hash")
+  googleId        String?        @unique @map("google_id")
+  isVerified      Boolean        @default(false) @map("is_verified")
+  otpCode         String?        @map("otp_code")
+  otpExpiresAt    DateTime?      @map("otp_expires_at")
+  createdAt       DateTime       @default(now()) @map("created_at")
+  updatedAt       DateTime       @updatedAt @map("updated_at")
+
+  profile         Profile?
+  interests       UserInterest[]
+  swipesSent      Swipe[]        @relation("SwiperUser")
+  swipesReceived  Swipe[]        @relation("TargetUser")
+  matchesAsUser1  Match[]        @relation("MatchUser1")
+  matchesAsUser2  Match[]        @relation("MatchUser2")
+  messagesSent    Message[]      @relation("SentMessages")
+
+  @@map("users")
+}
+
+model Profile {
+  id                String    @id @default(uuid())
+  userId            String    @unique @map("user_id")
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fullName          String    @map("full_name")
+  gender            Gender
+  birthDate         DateTime  @map("birth_date")
+  heightCm          Int?      @map("height_cm")
+  bio               String?   @db.Text
+  mbtiType          String?   @map("mbti_type")
+  dailyMood         String?   @map("daily_mood")
+  moodUpdatedAt     DateTime? @map("mood_updated_at")
+  avatarUrl         String?   @map("avatar_url")
+  photos            String[]  @default([])
+  latitude          Float     @default(21.028511)
+  longitude         Float     @default(105.854444)
+  isVirtualLocation Boolean   @default(false) @map("is_virtual_location")
+  maxDistanceKm     Int       @default(50) @map("max_distance_km")
+  ageMin            Int       @default(18) @map("age_min")
+  ageMax            Int       @default(35) @map("age_max")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+
+  @@map("profiles")
+}
+
+model Interest {
+  id        Int            @id @default(autoincrement())
+  name      String         @unique
+  iconName  String?        @map("icon_name")
+  category  String?
+  users     UserInterest[]
+
+  @@map("interests")
+}
+
+model UserInterest {
+  userId     String   @map("user_id")
+  interestId Int      @map("interest_id")
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  interest   Interest @relation(fields: [interestId], references: [id], onDelete: Cascade)
+
+  @@id([userId, interestId])
+  @@map("user_interests")
+}
+
+model Swipe {
+  id        String      @id @default(uuid())
+  swiperId  String      @map("swiper_id")
+  targetId  String      @map("target_id")
+  action    SwipeAction
+  createdAt DateTime    @default(now()) @map("created_at")
+
+  swiper    User        @relation("SwiperUser", fields: [swiperId], references: [id], onDelete: Cascade)
+  target    User        @relation("TargetUser", fields: [targetId], references: [id], onDelete: Cascade)
+
+  @@unique([swiperId, targetId])
+  @@index([swiperId])
+  @@index([targetId])
+  @@map("swipes")
+}
+
+model Match {
+  id           String        @id @default(uuid())
+  user1Id      String        @map("user1_id")
+  user2Id      String        @map("user2_id")
+  isActive     Boolean       @default(true) @map("is_active")
+  createdAt    DateTime      @default(now()) @map("created_at")
+
+  user1        User          @relation("MatchUser1", fields: [user1Id], references: [id], onDelete: Cascade)
+  user2        User          @relation("MatchUser2", fields: [user2Id], references: [id], onDelete: Cascade)
+  conversation Conversation?
+
+  @@unique([user1Id, user2Id])
+  @@map("matches")
+}
+
+model Conversation {
+  id            String    @id @default(uuid())
+  matchId       String    @unique @map("match_id")
+  match         Match     @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  lastMessageAt DateTime  @default(now()) @map("last_message_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  messages      Message[]
+
+  @@map("conversations")
+}
+
+model Message {
+  id             String       @id @default(uuid())
+  conversationId String       @map("conversation_id")
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  senderId       String       @map("sender_id")
+  sender         User         @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+  content        String       @db.Text
+  isRead         Boolean      @default(false) @map("is_read")
+  isAiGenerated  Boolean      @default(false) @map("is_ai_generated")
+  createdAt      DateTime     @default(now()) @map("created_at")
+
+  @@index([conversationId, createdAt])
+  @@map("messages")
+}

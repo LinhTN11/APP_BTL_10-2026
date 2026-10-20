@@ -1,0 +1,694 @@
+{
+  "info": {
+    "_postman_id": "cupid-ai-smart-dating-api",
+    "name": "Cupid AI - Smart Dating App Backend API",
+    "description": "Toàn bộ API endpoints cho hệ thống hẹn hò thông minh Cupid AI (Node.js TypeScript, Express, Socket.io, Prisma, PostgreSQL). Sử dụng biến môi trường {{baseUrl}} và {{token}}.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000/api/v1",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "refreshToken",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "0. System & Health",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["health"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "1. Authentication",
+      "item": [
+        {
+          "name": "Register New Account",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"test_student@test.com\",\n  \"password\": \"MatKhau123@\",\n  \"fullName\": \"Học Viên Mẫu\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "register"]
+            }
+          }
+        },
+        {
+          "name": "Verify OTP (Bypass: 123456)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"test_student@test.com\",\n  \"otp\": \"123456\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/verify-otp",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "verify-otp"]
+            }
+          }
+        },
+        {
+          "name": "Resend OTP",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"test_student@test.com\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/resend-otp",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "resend-otp"]
+            }
+          }
+        },
+        {
+          "name": "Login (Lấy Access & Refresh Token)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"linh.tran@test.com\",\n  \"password\": \"MatKhau123@\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "Refresh Token",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/refresh-token",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "refresh-token"]
+            }
+          }
+        },
+        {
+          "name": "Forgot Password (Yêu cầu OTP reset)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"linh.tran@test.com\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/forgot-password",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "forgot-password"]
+            }
+          }
+        },
+        {
+          "name": "Reset Password (Với mã OTP)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"linh.tran@test.com\",\n  \"otp\": \"123456\",\n  \"newPassword\": \"MatKhauMoi123@\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/reset-password",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "reset-password"]
+            }
+          }
+        },
+        {
+          "name": "Change Password (Đã đăng nhập)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"oldPassword\": \"MatKhau123@\",\n  \"newPassword\": \"MatKhauMoi123@\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/change-password",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "change-password"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. User Profile",
+      "item": [
+        {
+          "name": "Get Current Profile (Me)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/profile/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["profile", "me"]
+            }
+          }
+        },
+        {
+          "name": "Update Profile (Me)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Trần Mai Linh\",\n  \"bio\": \"Yêu thích nhiếp ảnh, du lịch và cà phê acoustic Hà Nội.\",\n  \"gender\": \"FEMALE\",\n  \"birthDate\": \"2002-05-15T00:00:00.000Z\",\n  \"mbti\": \"ENFP\",\n  \"dailyMood\": \"Thèm trà sữa\",\n  \"latitude\": 21.0285,\n  \"longitude\": 105.8542,\n  \"interests\": [\"Cà phê\", \"Du lịch\", \"Nhiếp ảnh\", \"Âm nhạc\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/profile/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["profile", "me"]
+            }
+          }
+        },
+        {
+          "name": "Get Master Interests List",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/profile/interests",
+              "host": ["{{baseUrl}}"],
+              "path": ["profile", "interests"]
+            }
+          }
+        },
+        {
+          "name": "Get User Profile By ID",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/profile/user/:userId",
+              "host": ["{{baseUrl}}"],
+              "path": ["profile", "user", ":userId"],
+              "variable": [
+                {
+                  "key": "userId",
+                  "value": "user-uuid-here"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Discovery & Swipe",
+      "item": [
+        {
+          "name": "Get Discovery Feed (Cards)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/discovery/feed?maxDistance=50&minAge=18&maxAge=30&gender=ALL",
+              "host": ["{{baseUrl}}"],
+              "path": ["discovery", "feed"],
+              "query": [
+                {
+                  "key": "maxDistance",
+                  "value": "50"
+                },
+                {
+                  "key": "minAge",
+                  "value": "18"
+                },
+                {
+                  "key": "maxAge",
+                  "value": "30"
+                },
+                {
+                  "key": "gender",
+                  "value": "ALL"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Discovery Preferences",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/discovery/preferences",
+              "host": ["{{baseUrl}}"],
+              "path": ["discovery", "preferences"]
+            }
+          }
+        },
+        {
+          "name": "Update Discovery Preferences",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"minAge\": 20,\n  \"maxAge\": 26,\n  \"maxDistance\": 30,\n  \"genderPreference\": \"MALE\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/discovery/preferences",
+              "host": ["{{baseUrl}}"],
+              "path": ["discovery", "preferences"]
+            }
+          }
+        },
+        {
+          "name": "Swipe (LIKE / PASS / SUPERLIKE)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"targetUserId\": \"target-user-uuid\",\n  \"action\": \"LIKE\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/swipe",
+              "host": ["{{baseUrl}}"],
+              "path": ["swipe"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Chat & Matches",
+      "item": [
+        {
+          "name": "Get Matched Conversations List",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/chat/matches",
+              "host": ["{{baseUrl}}"],
+              "path": ["chat", "matches"]
+            }
+          }
+        },
+        {
+          "name": "Get Conversation Messages",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/chat/matches/:matchId/messages?page=1&limit=50",
+              "host": ["{{baseUrl}}"],
+              "path": ["chat", "matches", ":matchId", "messages"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "50"
+                }
+              ],
+              "variable": [
+                {
+                  "key": "matchId",
+                  "value": "match-uuid-here"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Send Message (HTTP Fallback)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"Chào bạn! Cuối tuần này bạn có kế hoạch đi đâu chưa?\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/chat/matches/:matchId/messages",
+              "host": ["{{baseUrl}}"],
+              "path": ["chat", "matches", ":matchId", "messages"],
+              "variable": [
+                {
+                  "key": "matchId",
+                  "value": "match-uuid-here"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Mark Messages Read",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/chat/matches/:matchId/read",
+              "host": ["{{baseUrl}}"],
+              "path": ["chat", "matches", ":matchId", "read"],
+              "variable": [
+                {
+                  "key": "matchId",
+                  "value": "match-uuid-here"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Unmatch (Hủy ghép đôi)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/chat/matches/:matchId",
+              "host": ["{{baseUrl}}"],
+              "path": ["chat", "matches", ":matchId"],
+              "variable": [
+                {
+                  "key": "matchId",
+                  "value": "match-uuid-here"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. AI Features",
+      "item": [
+        {
+          "name": "Generate AI Icebreaker Suggestions",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"matchId\": \"match-uuid-here\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/ai/icebreaker",
+              "host": ["{{baseUrl}}"],
+              "path": ["ai", "icebreaker"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Media Upload",
+      "item": [
+        {
+          "name": "Upload Image (Base64)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"data\": \"data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEASABIAAD...\",\n  \"type\": \"avatar\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/upload",
+              "host": ["{{baseUrl}}"],
+              "path": ["upload"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

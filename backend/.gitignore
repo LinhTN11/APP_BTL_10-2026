@@ -1,0 +1,30 @@
+# ==============================================================================
+# GITIGNORE - CUPID AI BACKEND SERVICE
+# ==============================================================================
+
+# Environment files
+.env
+.env.*
+*.env
+.env.local
+!.env.example
+
+# Dependencies
+node_modules/
+
+# Compilation output
+dist/
+build/
+*.tsbuildinfo
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS & Editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

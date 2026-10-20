@@ -1,0 +1,85 @@
+# ==============================================================================
+# GITIGNORE - CUPID AI DATING APP (MONOREPO ROOT)
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# 1. Environment Variables & Secret Files (CRITICAL - NEVER COMMIT)
+# ------------------------------------------------------------------------------
+.env
+.env.*
+*.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+**/.env
+**/.env.*
+!**/.env.example
+
+# ------------------------------------------------------------------------------
+# 2. Dependencies & Package Managers
+# ------------------------------------------------------------------------------
+node_modules/
+**/node_modules/
+.pnp/
+.pnp.js
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# ------------------------------------------------------------------------------
+# 3. Build Outputs & Compilations
+# ------------------------------------------------------------------------------
+backend/dist/
+backend/build/
+dist/
+build/
+*.tsbuildinfo
+
+# ------------------------------------------------------------------------------
+# 4. Mobile (React Native CLI - Android & iOS Native Artifacts)
+# ------------------------------------------------------------------------------
+mobile/android/.gradle/
+mobile/android/app/build/
+mobile/android/build/
+mobile/android/.idea/
+mobile/android/*.iml
+mobile/android/local.properties
+mobile/android/key.properties
+*.keystore
+*.jks
+*.apk
+*.aab
+
+mobile/ios/build/
+mobile/ios/Pods/
+mobile/ios/*.xcworkspace
+mobile/ios/*.xcuserdata
+mobile/ios/*.xcuserstate
+
+# ------------------------------------------------------------------------------
+# 5. OS, IDE & Editor Caches
+# ------------------------------------------------------------------------------
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+!.vscode/settings.json
+!.vscode/extensions.json
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# ------------------------------------------------------------------------------
+# 6. Logs, Dumps & Temp Files
+# ------------------------------------------------------------------------------
+*.log
+*.tmp
+*.temp
+*.swp
+*.bak
+dump.rdb
+.system_generated/
+scratch/

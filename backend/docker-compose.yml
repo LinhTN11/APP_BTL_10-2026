@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  cupid_postgres:
+    image: postgres:16-alpine
+    container_name: cupid_dating_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: cupid_user
+      POSTGRES_PASSWORD: cupid_password_2026
+      POSTGRES_DB: cupid_dating_db
+    ports:
+      - "5433:5432"
+    volumes:
+      - cupid_postgres_data:/var/lib/postgresql/data
+
+volumes:
+  cupid_postgres_data:
