@@ -29,10 +29,11 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       return;
     }
 
-    // Connect to WebSocket server
+    // Connect to WebSocket server with websocket and polling fallback
     const newSocket = io(API_BASE_URL, {
-      transports: ['websocket'],
+      transports: ['websocket', 'polling'],
       autoConnect: true,
+      reconnectionAttempts: 5,
     });
 
     newSocket.on('connect', () => {

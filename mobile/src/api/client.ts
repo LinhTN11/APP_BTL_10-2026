@@ -2,9 +2,22 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 
-// Android Emulator connects to host machine via 10.0.2.2; iOS Simulator via localhost
+// =============================================================================
+// BACKEND API BASE URL CONFIGURATION
+// =============================================================================
+// - Android Emulator (mặc định): http://10.0.2.2:5000
+// - iOS Simulator (mặc định): http://localhost:5000
+// - Máy thật cắm cáp USB (khuyên dùng): Chạy lệnh `adb reverse tcp:5000 tcp:5000`,
+//   sau đó đặt API_BASE_URL = 'http://localhost:5000'
+// - Máy thật qua Wi-Fi LAN: Đặt API_BASE_URL = 'http://<IP_MAY_TINH_CUA_BAN>:5000' (VD: http://192.168.1.50:5000)
+// - Server Cloud (Render/Railway): Đặt API_BASE_URL = 'https://your-backend.onrender.com'
+// =============================================================================
+
+const OVERRIDE_CUSTOM_URL: string | null = null; // Gán URL tại đây nếu test máy thật Wi-Fi hoặc Cloud
+
 export const API_BASE_URL =
-  Platform.OS === 'android' ? 'http://10.0.2.2:5000' : 'http://localhost:5000';
+  OVERRIDE_CUSTOM_URL ||
+  (Platform.OS === 'android' ? 'http://10.0.2.2:5000' : 'http://localhost:5000');
 
 export const apiClient = axios.create({
   baseURL: `${API_BASE_URL}/api/v1`,

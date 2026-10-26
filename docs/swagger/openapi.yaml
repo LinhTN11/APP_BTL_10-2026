@@ -1,0 +1,1341 @@
+openapi: 3.0.3
+info:
+  title: Cupid AI - Smart Dating Platform API Documentation
+  version: 1.0.0
+  description: >-
+    ## 💘 Cupid AI - Hệ Thống Backend API & Real-time WebSocket Server
+
+
+    Tài liệu đặc tả chuẩn OpenAPI 3.0 / Swagger cho hệ thống ứng dụng hẹn hò
+    thông minh **Cupid AI**. Hệ thống được xây dựng trên nền tảng **Node.js,
+    Express, TypeScript, Prisma ORM, PostgreSQL, Socket.io, và Google Gemini
+    AI**.
+
+
+    ### 🔑 Hướng dẫn Xác thực (Authentication)
+
+    - Hầu hết các endpoint yêu cầu Access Token JWT thông qua header:
+    `Authorization: Bearer <access_token>`.
+
+    - Token được cấp khi đăng nhập thành công (`POST /auth/login`) hoặc xác thực
+    OTP (`POST /auth/verify-otp`).
+
+    - Hệ thống sử dụng cơ chế **Dual Token** (Access Token 1h & Refresh Token 7
+    ngày).
+
+
+    ### 🛡️ Dev OTP Bypass
+
+    - Trong môi trường phát triển (Development), hệ thống hỗ trợ mã xác thực cố
+    định **`123456`** để bypass bước nhận email OTP, giúp quá trình test FE/BE
+    diễn ra tức thì mà không cần cấu hình SMTP.
+  contact:
+    name: BTL Cupid AI Engineering Team
+    email: support@cupid-ai.local
+servers:
+  - url: http://localhost:5000/api/v1
+    description: Localhost Development Server (Web / iOS Simulator / Postman)
+  - url: http://10.0.2.2:5000/api/v1
+    description: Android Emulator Loopback Interface (Kết nối từ Android Emulator
+      đến máy tính host)
+  - url: http://192.168.1.100:5000/api/v1
+    description: Local Wi-Fi LAN (Thay bằng IP mạng nội bộ của máy tính khi test
+      trên thiết bị thật)
+tags:
+  - name: System & Health
+    description: Kiểm tra trạng thái hoạt động của hệ thống
+  - name: Authentication
+    description: Đăng ký, đăng nhập, OTP email, Google OAuth, Refresh token, Đổi mật khẩu
+  - name: Profile Management
+    description: Quản lý hồ sơ cá nhân, sở thích, ảnh, MBTI, tâm trạng, vị trí GPS
+  - name: Discovery & Matching
+    description: Thuật toán tìm kiếm đối tượng tiềm năng theo vị trí, độ tuổi, sở thích
+  - name: Swipes
+    description: Xử lý tương tác vuốt (Like/Pass), phát hiện Match 2 chiều
+  - name: Chat & Messaging
+    description: Lấy danh sách hội thoại, tin nhắn lịch sử, đánh dấu đã đọc, hủy tương hợp
+  - name: AI Assistant (Gemini)
+    description: Gợi ý mở lời phá băng (Icebreaker) cá nhân hóa bằng Google Gemini AI
+paths:
+  /health:
+    get:
+      tags:
+        - System & Health
+      summary: Kiểm tra sức khỏe dịch vụ (Health Check)
+      description: Trả về trạng thái hoạt động của backend service và timestamp hiện tại.
+      responses:
+        "200":
+          description: Dịch vụ đang hoạt động bình thường
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: online
+                  service:
+                    type: string
+                    example: Cupid AI Backend
+                  timestamp:
+                    type: string
+                    format: date-time
+                    example: 2026-10-26T04:15:00.000Z
+  /auth/register:
+    post:
+      tags:
+        - Authentication
+      summary: Đăng ký tài khoản mới bằng Email & Mật khẩu
+      description: Tạo tài khoản người dùng mới (chưa kích hoạt) và gửi mã OTP 6 chữ
+        số qua Email để xác thực.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: user@test.com
+                password:
+                  type: string
+                  minLength: 6
+                  example: MatKhau123@
+      responses:
+        "201":
+          description: Đăng ký thành công, mã OTP đã được phát
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Mã OTP xác thực đã được gửi về email của bạn.
+                  email:
+                    type: string
+                    example: user@test.com
+        "400":
+          $ref: "#/components/responses/BadRequestError"
+        "409":
+          description: Email đã được đăng ký và kích hoạt
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /auth/verify-otp:
+    post:
+      tags:
+        - Authentication
+      summary: Xác thực mã OTP email & Nhận JWT Tokens
+      description: Xác thực tài khoản với mã OTP 6 số. Khi
+        `ENABLE_DEV_OTP_BYPASS=true`, mã `123456` luôn được chấp nhận.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - otpCode
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: user@test.com
+                otpCode:
+                  type: string
+                  example: "123456"
+      responses:
+        "200":
+          description: Xác thực thành công, trả về Access Token và Refresh Token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthSuccessResponse"
+        "400":
+          $ref: "#/components/responses/BadRequestError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+  /auth/resend-otp:
+    post:
+      tags:
+        - Authentication
+      summary: Gửi lại mã OTP xác thực email
+      description: Cấp mới một mã OTP 6 số khác và gia hạn thời gian hiệu lực 5 phút.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: user@test.com
+      responses:
+        "200":
+          description: Gửi lại OTP thành công
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Mã xác thực mới đã được gửi.
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+  /auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: Đăng nhập tài khoản bằng Email & Mật khẩu
+      description: Xác thực mật khẩu và cấp phát Access Token (1h) cùng Refresh Token (7d).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: user@test.com
+                password:
+                  type: string
+                  example: MatKhau123@
+      responses:
+        "200":
+          description: Đăng nhập thành công
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthSuccessResponse"
+        "400":
+          $ref: "#/components/responses/BadRequestError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+  /auth/google/config:
+    get:
+      tags:
+        - Authentication
+      summary: Lấy Google Client ID công khai
+      description: Cung cấp Client ID phục vụ luồng Google Sign-In trên ứng dụng di
+        động React Native.
+      responses:
+        "200":
+          description: Cấu hình Google OAuth
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  googleClientId:
+                    type: string
+                    example: 939451413582-kqvgj6lhn10htesi1r9rrb4pthfrqk4q.apps.googleusercontent.com
+  /auth/google:
+    post:
+      tags:
+        - Authentication
+      summary: Đăng nhập hoặc đăng ký bằng Google OAuth
+      description: Xác thực ID Token được cấp từ Google Sign-in SDK trên Mobile. Tự
+        động tạo user nếu chưa tồn tại.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                idToken:
+                  type: string
+                  example: eyJhbGciOiJSUzI1NiIsImtpZCI...
+                user:
+                  type: object
+                  properties:
+                    email:
+                      type: string
+                      example: google_user@gmail.com
+                    name:
+                      type: string
+                      example: Nguyễn Văn A
+                    photo:
+                      type: string
+                      example: https://lh3.googleusercontent.com/...
+      responses:
+        "200":
+          description: Đăng nhập Google thành công
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthSuccessResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+  /auth/refresh-token:
+    post:
+      tags:
+        - Authentication
+      summary: Cấp mới Access Token bằng Refresh Token
+      description: Khi Access Token hết hạn (401), FE gọi endpoint này để nhận Access
+        Token mới mà không bắt user đăng nhập lại.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - refreshToken
+              properties:
+                refreshToken:
+                  type: string
+                  example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+      responses:
+        "200":
+          description: Cấp Access Token mới thành công
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  accessToken:
+                    type: string
+                    example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+                  tokenType:
+                    type: string
+                    example: Bearer
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+  /auth/forgot-password:
+    post:
+      tags:
+        - Authentication
+      summary: Yêu cầu đặt lại mật khẩu (Gửi mã OTP)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: user@test.com
+      responses:
+        "200":
+          description: Mã OTP đặt lại mật khẩu đã được gửi
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Mã OTP khôi phục mật khẩu đã được gửi.
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+  /auth/reset-password:
+    post:
+      tags:
+        - Authentication
+      summary: Đặt lại mật khẩu mới bằng OTP
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - otpCode
+                - newPassword
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: user@test.com
+                otpCode:
+                  type: string
+                  example: "123456"
+                newPassword:
+                  type: string
+                  minLength: 6
+                  example: MatKhauMoi456@
+      responses:
+        "200":
+          description: Đặt lại mật khẩu thành công
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Đặt lại mật khẩu thành công. Vui lòng đăng nhập lại.
+        "400":
+          $ref: "#/components/responses/BadRequestError"
+  /auth/change-password:
+    put:
+      tags:
+        - Authentication
+      summary: Đổi mật khẩu người dùng đã đăng nhập
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - oldPassword
+                - newPassword
+              properties:
+                oldPassword:
+                  type: string
+                  example: MatKhau123@
+                newPassword:
+                  type: string
+                  minLength: 6
+                  example: MatKhauMoi789@
+      responses:
+        "200":
+          description: Đổi mật khẩu thành công
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Đổi mật khẩu thành công.
+        "400":
+          $ref: "#/components/responses/BadRequestError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+  /profile/interests:
+    get:
+      tags:
+        - Profile Management
+      summary: Lấy danh sách các sở thích mẫu trong hệ thống
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Danh sách sở thích
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  count:
+                    type: integer
+                    example: 20
+                  interests:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Interest"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+  /profile/me:
+    get:
+      tags:
+        - Profile Management
+      summary: Lấy thông tin hồ sơ của người dùng hiện tại
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Hồ sơ cá nhân chi tiết
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  profile:
+                    $ref: "#/components/schemas/Profile"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+  /profile/user/{userId}:
+    get:
+      tags:
+        - Profile Management
+      summary: Xem thông tin hồ sơ công khai của một người dùng bất kỳ
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          description: UUID của người dùng cần xem
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Hồ sơ công khai (bao gồm khoảng cách km nếu có tọa độ)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  profile:
+                    $ref: "#/components/schemas/PublicProfile"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+  /profile:
+    post:
+      tags:
+        - Profile Management
+      summary: Khởi tạo hoặc cập nhật hồ sơ cá nhân
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - fullName
+                - gender
+                - birthDate
+              properties:
+                fullName:
+                  type: string
+                  example: Nguyễn Linh
+                gender:
+                  type: string
+                  enum:
+                    - MALE
+                    - FEMALE
+                    - OTHER
+                  example: FEMALE
+                birthDate:
+                  type: string
+                  format: date
+                  example: 2002-08-20
+                heightCm:
+                  type: integer
+                  example: 165
+                bio:
+                  type: string
+                  example: Yêu thích cà phê sách và du lịch bụi ☕✈️
+                interestIds:
+                  type: array
+                  items:
+                    type: integer
+                  example:
+                    - 1
+                    - 3
+                    - 5
+                    - 8
+                latitude:
+                  type: number
+                  format: float
+                  example: 21.028511
+                longitude:
+                  type: number
+                  format: float
+                  example: 105.854444
+      responses:
+        "200":
+          description: Cập nhật hồ sơ thành công
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Hồ sơ đã được lưu thành công.
+                  profile:
+                    $ref: "#/components/schemas/Profile"
+        "400":
+          $ref: "#/components/responses/BadRequestError"
+  /profile/preferences:
+    put:
+      tags:
+        - Profile Management
+      summary: Cài đặt bộ lọc tìm kiếm (Khoảng cách, Độ tuổi)
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                maxDistanceKm:
+                  type: integer
+                  example: 30
+                ageMin:
+                  type: integer
+                  example: 20
+                ageMax:
+                  type: integer
+                  example: 28
+      responses:
+        "200":
+          description: Cập nhật cài đặt tìm kiếm thành công
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  preferences:
+                    type: object
+                    properties:
+                      maxDistanceKm:
+                        type: integer
+                        example: 30
+                      ageMin:
+                        type: integer
+                        example: 20
+                      ageMax:
+                        type: integer
+                        example: 28
+  /profile/upload:
+    post:
+      tags:
+        - Profile Management
+      summary: Thêm ảnh vào bộ sưu tập hoặc cập nhật ảnh đại diện
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - imageUrl
+              properties:
+                imageUrl:
+                  type: string
+                  format: uri
+                  example: https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=600
+                isAvatar:
+                  type: boolean
+                  default: false
+                  example: true
+      responses:
+        "200":
+          description: Tải ảnh lên thành công
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  url:
+                    type: string
+                    example: https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=600
+                  photos:
+                    type: array
+                    items:
+                      type: string
+  /profile/mbti:
+    put:
+      tags:
+        - Profile Management
+      summary: Cập nhật nhóm tính cách MBTI
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - mbtiType
+              properties:
+                mbtiType:
+                  type: string
+                  enum:
+                    - INTJ
+                    - INTP
+                    - ENTJ
+                    - ENTP
+                    - INFJ
+                    - INFP
+                    - ENFJ
+                    - ENFP
+                    - ISTJ
+                    - ISFJ
+                    - ESTJ
+                    - ESFJ
+                    - ISTP
+                    - ISFP
+                    - ESTP
+                    - ESFP
+                  example: ENFP
+      responses:
+        "200":
+          description: Cập nhật MBTI thành công
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  mbtiType:
+                    type: string
+                    example: ENFP
+  /profile/mood:
+    put:
+      tags:
+        - Profile Management
+      summary: Cập nhật trạng thái tâm trạng trong ngày (Daily Mood)
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - dailyMood
+              properties:
+                dailyMood:
+                  type: string
+                  example: Thèm trà sữa trân châu đường đen 🧋
+      responses:
+        "200":
+          description: Cập nhật tâm trạng thành công
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  dailyMood:
+                    type: string
+                    example: Thèm trà sữa trân châu đường đen 🧋
+  /profile/location:
+    put:
+      tags:
+        - Profile Management
+      summary: Cập nhật tọa độ GPS người dùng
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - latitude
+                - longitude
+              properties:
+                latitude:
+                  type: number
+                  format: float
+                  example: 21.033333
+                longitude:
+                  type: number
+                  format: float
+                  example: 105.85
+      responses:
+        "200":
+          description: Cập nhật tọa độ GPS thành công
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  latitude:
+                    type: number
+                    example: 21.033333
+                  longitude:
+                    type: number
+                    example: 105.85
+  /discovery/feed:
+    get:
+      tags:
+        - Discovery & Matching
+      summary: Lấy danh sách các đối tượng ghép đôi tiềm năng (Card Stacks)
+      description: Thuật toán lọc và xếp hạng ứng viên dựa trên khoảng cách địa lý
+        (Haversine Formula), độ tương đồng sở thích, độ tuổi, giới tính và loại
+        bỏ các đối tượng đã được quẹt (Liked/Passed) trước đó.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: gender
+          in: query
+          schema:
+            type: string
+            enum:
+              - MALE
+              - FEMALE
+              - OTHER
+          description: Lọc theo giới tính
+        - name: minAge
+          in: query
+          schema:
+            type: integer
+          description: Tuổi tối thiểu
+        - name: maxAge
+          in: query
+          schema:
+            type: integer
+          description: Tuổi tối đa
+        - name: maxDistance
+          in: query
+          schema:
+            type: integer
+          description: Bán kính tối đa (km)
+        - name: mbti
+          in: query
+          schema:
+            type: string
+          description: Lọc theo MBTI
+      responses:
+        "200":
+          description: Danh sách ứng viên tiềm năng kèm khoảng cách và số sở thích chung
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  count:
+                    type: integer
+                    example: 5
+                  feed:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/DiscoveryCandidate"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+  /swipes:
+    post:
+      tags:
+        - Swipes
+      summary: Thực hiện quẹt (LIKE hoặc PASS)
+      description: Lưu hành động vuốt của người dùng. Nếu 2 người cùng quẹt LIKE, hệ
+        thống tự động tạo `Match`, khởi tạo `Conversation` và phát thông báo
+        real-time qua Socket.io.
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - targetUserId
+                - action
+              properties:
+                targetUserId:
+                  type: string
+                  format: uuid
+                  example: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+                action:
+                  type: string
+                  enum:
+                    - LIKE
+                    - PASS
+                  example: LIKE
+      responses:
+        "200":
+          description: Kết quả vuốt
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  action:
+                    type: string
+                    example: LIKE
+                  matched:
+                    type: boolean
+                    example: true
+                  matchId:
+                    type: string
+                    format: uuid
+                    nullable: true
+                    example: d5e6f7a8-b9c0-1234-5678-9abcdef01234
+                  conversationId:
+                    type: string
+                    format: uuid
+                    nullable: true
+                    example: f1e2d3c4-b5a6-7890-1234-56789abcdef0
+                  partner:
+                    $ref: "#/components/schemas/PublicProfile"
+        "400":
+          $ref: "#/components/responses/BadRequestError"
+  /chat/conversations:
+    get:
+      tags:
+        - Chat & Messaging
+      summary: Lấy danh sách các cuộc hội thoại đã tương hợp (Matched)
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Danh sách hội thoại
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  count:
+                    type: integer
+                    example: 3
+                  conversations:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ConversationItem"
+  /chat/conversations/{conversationId}/messages:
+    get:
+      tags:
+        - Chat & Messaging
+      summary: Lấy lịch sử tin nhắn trong cuộc hội thoại
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: conversationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: UUID của cuộc hội thoại
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+      responses:
+        "200":
+          description: Lịch sử tin nhắn được sắp xếp theo thời gian tăng dần
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  count:
+                    type: integer
+                    example: 15
+                  messages:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ChatMessage"
+  /chat/conversations/{conversationId}/read:
+    put:
+      tags:
+        - Chat & Messaging
+      summary: Đánh dấu tất cả tin nhắn trong hội thoại là đã đọc
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: conversationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Đánh dấu đã đọc thành công
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+  /chat/unmatch:
+    post:
+      tags:
+        - Chat & Messaging
+      summary: Hủy ghép đôi (Unmatch) với một đối tượng
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - matchId
+              properties:
+                matchId:
+                  type: string
+                  format: uuid
+                  example: d5e6f7a8-b9c0-1234-5678-9abcdef01234
+      responses:
+        "200":
+          description: Hủy tương hợp thành công
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Đã hủy tương hợp thành công.
+  /ai/icebreaker:
+    post:
+      tags:
+        - AI Assistant (Gemini)
+      summary: Tạo 3 câu mở lời phá băng bằng Trợ lý AI Cupid
+      description: "Sử dụng mô hình Google Gemini AI phân tích hồ sơ 2 người (sở thích
+        chung, bio, MBTI, khoảng cách) để sinh ra 3 phương án mở lời theo 3
+        phong cách: **Duyên dáng/Hài hước**, **Thấu cảm/Chân thành**, **Độc
+        đáo/Bất ngờ**. Hệ thống tự động fallback về Rule-based Engine nếu chưa
+        nạp GEMINI_API_KEY hoặc mất kết nối mạng. Giới hạn: 20 lượt gọi/ngày cho
+        mỗi user."
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - matchId
+              properties:
+                matchId:
+                  type: string
+                  description: UUID của Match (hỗ trợ cả ConversationId để đảm bảo tương thích
+                    ngược với Mobile)
+                  example: d5e6f7a8-b9c0-1234-5678-9abcdef01234
+      responses:
+        "200":
+          description: 3 câu mở lời gợi ý
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  matchId:
+                    type: string
+                    example: d5e6f7a8-b9c0-1234-5678-9abcdef01234
+                  partnerName:
+                    type: string
+                    example: Phương Ly
+                  sharedInterests:
+                    type: array
+                    items:
+                      type: string
+                    example:
+                      - Du lịch
+                      - Cà phê
+                      - Nhiếp ảnh
+                  icebreakers:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        style:
+                          type: string
+                          example: Hài hước & Tự nhiên
+                        text:
+                          type: string
+                          example: Chào Ly! Thấy bạn cũng mê Cà phê, hôm nào mình đổi từ quẹt phải sang
+                            quẹt thẻ ở một quán vintage nhé?
+        "429":
+          description: Vượt quá giới hạn 20 yêu cầu AI mỗi ngày
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: "Nhập JWT Access Token nhận được sau khi login (Ví dụ: `eyJhbGciOi...`)"
+  responses:
+    BadRequestError:
+      description: Dữ liệu yêu cầu không hợp lệ hoặc thiếu trường bắt buộc
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    UnauthorizedError:
+      description: Token không hợp lệ, đã hết hạn hoặc chưa cung cấp
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    NotFoundError:
+      description: Không tìm thấy tài nguyên yêu cầu
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+  schemas:
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          example: Mô tả chi tiết về lỗi xảy ra
+    AuthSuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        accessToken:
+          type: string
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        refreshToken:
+          type: string
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        user:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+              example: b8a329d9-4d6f-4318-a687-73d88a1be99f
+            email:
+              type: string
+              example: user@test.com
+            isVerified:
+              type: boolean
+              example: true
+            hasProfile:
+              type: boolean
+              example: true
+    Interest:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: Du lịch
+        iconName:
+          type: string
+          example: airplane
+        category:
+          type: string
+          example: Lifestyle
+    Profile:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: 6d338f07-7f89-4b13-912f-f4e9adbc95b2
+        userId:
+          type: string
+          format: uuid
+          example: b8a329d9-4d6f-4318-a687-73d88a1be99f
+        fullName:
+          type: string
+          example: Nguyễn Linh
+        gender:
+          type: string
+          enum:
+            - MALE
+            - FEMALE
+            - OTHER
+          example: FEMALE
+        birthDate:
+          type: string
+          format: date-time
+          example: 2002-08-20T00:00:00.000Z
+        age:
+          type: integer
+          example: 24
+        heightCm:
+          type: integer
+          example: 165
+        bio:
+          type: string
+          example: Yêu thích du lịch, âm nhạc và trà chiều ☕
+        mbtiType:
+          type: string
+          example: ENFP
+        dailyMood:
+          type: string
+          example: Vui vẻ tràn đầy năng lượng
+        avatarUrl:
+          type: string
+          example: https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=600
+        photos:
+          type: array
+          items:
+            type: string
+          example:
+            - https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=600
+        latitude:
+          type: number
+          example: 21.028511
+        longitude:
+          type: number
+          example: 105.854444
+        interests:
+          type: array
+          items:
+            $ref: "#/components/schemas/Interest"
+    PublicProfile:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: b8a329d9-4d6f-4318-a687-73d88a1be99f
+        fullName:
+          type: string
+          example: Hoàng Nam
+        gender:
+          type: string
+          example: MALE
+        age:
+          type: integer
+          example: 25
+        bio:
+          type: string
+          example: Thích nhiếp ảnh đường phố và chạy bộ.
+        heightCm:
+          type: integer
+          example: 178
+        mbtiType:
+          type: string
+          example: INTJ
+        dailyMood:
+          type: string
+          example: Tập trung làm việc
+        avatarUrl:
+          type: string
+          example: https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600
+        photos:
+          type: array
+          items:
+            type: string
+        distanceKm:
+          type: number
+          example: 3.8
+        interests:
+          type: array
+          items:
+            $ref: "#/components/schemas/Interest"
+    DiscoveryCandidate:
+      allOf:
+        - $ref: "#/components/schemas/PublicProfile"
+        - type: object
+          properties:
+            sharedInterestsCount:
+              type: integer
+              example: 3
+    ConversationItem:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: f1e2d3c4-b5a6-7890-1234-56789abcdef0
+        matchId:
+          type: string
+          format: uuid
+          example: d5e6f7a8-b9c0-1234-5678-9abcdef01234
+        lastMessageAt:
+          type: string
+          format: date-time
+        unreadCount:
+          type: integer
+          example: 1
+        partner:
+          $ref: "#/components/schemas/PublicProfile"
+        lastMessage:
+          $ref: "#/components/schemas/ChatMessage"
+    ChatMessage:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: m1n2b3v4-c5x6-7890-1234-567890abcdef
+        conversationId:
+          type: string
+          format: uuid
+          example: f1e2d3c4-b5a6-7890-1234-56789abcdef0
+        senderId:
+          type: string
+          format: uuid
+          example: b8a329d9-4d6f-4318-a687-73d88a1be99f
+        content:
+          type: string
+          example: Chào bạn! Rất vui được tương hợp với bạn trên Cupid AI 😊
+        isRead:
+          type: boolean
+          example: false
+        isAiGenerated:
+          type: boolean
+          example: true
+        createdAt:
+          type: string
+          format: date-time
+          example: 2026-10-26T04:20:00.000Z

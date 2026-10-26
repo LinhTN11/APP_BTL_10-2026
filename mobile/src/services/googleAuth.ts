@@ -30,7 +30,7 @@ export async function getGoogleClientId(): Promise<string> {
     const res = await apiClient.get('/auth/google/config');
     if (res.data?.clientId) {
       cachedClientId = res.data.clientId;
-      return cachedClientId;
+      return res.data.clientId as string;
     }
   } catch (err: any) {
     console.warn('[GoogleAuth] Could not fetch Google client ID from server:', err.message);
